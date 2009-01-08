@@ -11,6 +11,7 @@ module Dataset
         @password = database_spec[:password]
         @storage_path = storage_path
         FileUtils.mkdir_p(@storage_path)
+        @orderer = build_orderer
       end
       
       def capture(datasets)
@@ -28,6 +29,31 @@ module Dataset
       
       def storage_path(datasets)
         "#{@storage_path}/#{datasets.collect {|c| c.__id__}.join('_')}.sql"
+      end
+      
+      def clear_order
+        @clear_order ||= @orderer.deletion_order
+      end
+      
+      private
+      
+      def build_orderer
+        orderer = TableOrderer.new
+        tables = ActiveRecord::Base.connection.tables
+        tables.each { |t| orderer.add_table(t) }
+        rows = ActiveRecord::Base.connection.select_all(<<-SQL)
+          SELECT fct.table_name AS child, uct.table_name AS parent
+            FROM information_schema.table_constraints fct
+            INNER JOIN information_schema.referential_constraints rc
+              ON fct.constraint_name = rc.constraint_name
+            INNER JOIN information_schema.table_constraints uct
+              ON rc.unique_constraint_name = uct.constraint_name
+        SQL
+        rows.each do |row|
+          orderer.link row['parent'], row['child']
+        end
+        
+        orderer
       end
     end
   end

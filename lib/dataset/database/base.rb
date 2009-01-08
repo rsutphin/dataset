@@ -10,7 +10,7 @@ module Dataset
       def clear
         connection = ActiveRecord::Base.connection
         ActiveRecord::Base.silence do
-          connection.tables.each do |table_name|
+          clear_order.each do |table_name|
             connection.delete "DELETE FROM #{connection.quote_table_name(table_name)}",
               "Dataset::Database#clear" unless table_name == 'schema_migrations'
           end
@@ -19,6 +19,10 @@ module Dataset
       
       def record_meta(record_class)
         record_metas[record_class] ||= Dataset::Record::Meta.new(record_class)
+      end
+      
+      def clear_order
+        ActiveRecord::Base.connection.tables
       end
       
       protected

@@ -47,3 +47,4 @@ end
 
 require "models"
 require "dataset"
+require "#{SPEC_ROOT}/custom_matchers"
